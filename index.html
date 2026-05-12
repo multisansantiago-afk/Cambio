@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#07090f">
+  <title>Cambio</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Azeret+Mono:wght@400;500;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+  /* ══════════════════════════════════
+     RESET & ROOT
+  ══════════════════════════════════ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #07090f;
+    --s1:          #0c1018;
+    --s2:          #111722;
+    --s3:          #18202e;
+    --border:      #1c2840;
+    --border2:     #243252;
+    --t1:          #dde5f5;
+    --t2:          #7f93b4;
+    --t3:          #3d506e;
+    --accent:      #dfa020;
+    --accent-bg:   #1e1504;
+    --green:       #18c97c;
+    --green-bg:    #041810;
+    --red:         #e84040;
+    --red-bg:      #1e0606;
+    --yellow:      #f0a520;
+    --yellow-bg:   #1e1300;
+    --fn: 'Archivo Black', sans-serif;
+    --fm: 'Azeret Mono', monospace;
+    --fb: 'DM Sans', sans-serif;
+  }
+
+  html { height: 100%; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--fb);
+    background: var(--bg);
+    color: var(--t1);
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* ══════════════════════════════════
+     APP SHELL
+  ══════════════════════════════════ */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ══════════════════════════════════
+     HEADER
+  ══════════════════════════════════ */
+  .header {
+    flex-shrink: 0;
+    background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    padding: 13px 20px 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 10;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent);
+    opacity: 0.35;
+  }
+
+  .header-logo {
+    font-family: var(--fn);
+    font-size: 1.3rem;
+    letter-spacing: -0.5px;
+    color: var(--t1);
+  }
+
+  .header-logo span { color: var(--accent); }
+
+  .header-right { text-align: right; }
+
+  .header-date {
+    font-family: var(--fm);
+    font-size: 0.6rem;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+
+  .header-time {
+    font-family: var(--fm);
+    font-size: 0.78rem;
+    color: var(--t2);
+    margin-top: 2px;
+  }
+
+  /* ══════════════════════════════════
+     MAIN
+  ══════════════════════════════════ */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .main::-webkit-scrollbar { width: 2px; }
+  .main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 1px; }
+
+  /* ══════════════════════════════════
+     VIEWS
+  ══════════════════════════════════ */
+  .view { display: none; padding: 16px; min-height: 100%; }
+  .view.active { display: block; animation: fadeUp 0.18s ease both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════
+     BOTTOM NAV
+  ══════════════════════════════════ */
+  .bottom-nav {
+    flex-shrink: 0;
+    background: var(--s1);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 8px;
+    border: none;
+    background: none;
+    color: var(--t3);
+    font-family: var(--fb);
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s;
+    gap: 4px;
+    position: relative;
+  }
+
+  .nav-item svg { width: 19px; height: 19px; stroke-width: 1.8; }
+
+  .nav-item.active { color: var(--accent); }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 28px; height: 2px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* ══════════════════════════════════
+     RESUMEN — STATS ROW
+  ══════════════════════════════════ */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.56rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--fm);
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ══════════════════════════════════
+     SECTION LABEL
+  ══════════════════════════════════ */
+  .section-label {
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ══════════════════════════════════
+     INSTALLATION CARDS
+  ══════════════════════════════════ */
+  .inst-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .inst-card {
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 12px 12px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .inst-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 10px 0 0 10px;
+  }
+
+  .inst-card.st-pos::before  { background: var(--green); }
+  .inst-card.st-neg::before  { background: var(--red); }
+  .inst-card.st-zero::before { background: var(--t3); }
+  .inst-card.st-tr::before   { background: var(--yellow); }
+
+  .inst-card:active { transform: scale(0.965); border-color: var(--border2); }
+
+  .inst-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--t2);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inst-balance {
+    font-family: var(--fm);
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .inst-balance.pos  { color: var(--green); }
+  .inst-balance.neg  { color: var(--red); }
+  .inst-balance.zero { color: var(--t3); }
+
+  .inst-transit {
+    font-family: var(--fm);
+    font-size: 0.6rem;
+    color: var(--yellow);
+    margin-top: 5px;
+  }
+
+  .inst-last {
+    font-size: 0.6rem;
+    color: var(--t3);
+    margin-top: 5px;
+  }
+
+  /* ══════════════════════════════════
+     HISTORIAL — FILTERS
+  ══════════════════════════════════ */
+  .filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 14px;
+    padding-bottom: 2px;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+
+  .chip {
+    flex-shrink: 0;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--t2);
+    font-family: var(--fb);
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* ══════════════════════════════════
+     RECORD ITEMS
+  ══════════════════════════════════ */
+  .record-item {
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+
+  .record-item:active { transform: scale(0.98); border-color: var(--border2); }
+
+  .record-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 82px;
+  }
+
+  .record-amount {
+    font-family: var(--fm);
+    font-size: 0.98rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .record-amount.pos { color: var(--green); }
+  .record-amount.neg { color: var(--red); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--fb);
+    font-size: 0.58rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .badge.b-tr  { background: var(--yellow-bg); color: var(--yellow); }
+  .badge.b-tr .badge-dot  { background: var(--yellow); }
+  .badge.b-ins { background: var(--accent-bg); color: var(--accent); }
+  .badge.b-ins .badge-dot { background: var(--accent); }
+  .badge.b-rec { background: var(--green-bg);  color: var(--green); }
+  .badge.b-rec .badge-dot { background: var(--green); }
+
+  .record-right { flex: 1; min-width: 0; }
+
+  .record-inst {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--t1);
+  }
+
+  .record-date {
+    font-family: var(--fm);
+    font-size: 0.6rem;
+    color: var(--t3);
+    margin-top: 3px;
+  }
+
+  .record-notes {
+    font-size: 0.7rem;
+    color: var(--t2);
+    margin-top: 5px;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ══════════════════════════════════
+     EMPTY STATE
+  ══════════════════════════════════ */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 20px;
+    color: var(--t3);
+    text-align: center;
+    gap: 8px;
+  }
+
+  .empty-icon { font-size: 2rem; opacity: 0.35; }
+  .empty-text { font-size: 0.82rem; }
+
+  /* ══════════════════════════════════
+     FORM
+  ══════════════════════════════════ */
+  .form-section { margin-bottom: 20px; }
+
+  .form-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .inst-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .inst-pick-btn {
+    padding: 11px 10px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--t2);
+    font-family: var(--fb);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .inst-pick-btn:active { transform: scale(0.96); }
+
+  .inst-pick-btn.selected {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .amount-row { display: flex; gap: 7px; align-items: flex-start; }
+
+  .sign-btns { display: flex; gap: 4px; }
+
+  .sign-btn {
+    width: 46px;
+    height: 46px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--fm);
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--t3);
+  }
+
+  .sign-btn.pos.on { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .sign-btn.neg.on { background: var(--red-bg);   border-color: var(--red);   color: var(--red); }
+
+  .amount-multi {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .amount-line { display: flex; gap: 6px; }
+
+  .amount-input-line {
+    flex: 1;
+    height: 46px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 14px;
+    color: var(--t1);
+    font-family: var(--fm);
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .amount-input-line:focus { outline: none; border-color: var(--accent); }
+  .amount-input-line::placeholder { color: var(--t3); }
+
+  .btn-rm-line {
+    width: 38px;
+    height: 46px;
+    flex-shrink: 0;
+    background: var(--red-bg);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-rm-line:active { opacity: 0.65; }
+
+  .btn-add-line {
+    padding: 9px 12px;
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    color: var(--t3);
+    font-family: var(--fb);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-add-line:active { border-color: var(--accent); color: var(--accent); }
+
+  .amount-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    background: var(--s3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+  }
+
+  .amount-total-label {
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+  }
+
+  .amount-total-val {
+    font-family: var(--fm);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sign-hint {
+    font-size: 0.68rem;
+    color: var(--t3);
+    margin-top: 6px;
+  }
+
+  .sign-hint.pos { color: var(--green); opacity: 0.8; }
+  .sign-hint.neg { color: var(--red);   opacity: 0.8; }
+
+  .status-picker { display: flex; gap: 6px; }
+
+  .status-pick-btn {
+    flex: 1;
+    padding: 10px 6px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--t2);
+    font-family: var(--fb);
+    font-size: 0.68rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .status-pick-btn.s-tr  { background: var(--yellow-bg); border-color: var(--yellow); color: var(--yellow); font-weight: 700; }
+  .status-pick-btn.s-ins { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .status-pick-btn.s-rec { background: var(--green-bg);  border-color: var(--green);  color: var(--green);  font-weight: 700; }
+
+  .notes-input {
+    width: 100%;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--t1);
+    font-family: var(--fb);
+    font-size: 0.9rem;
+    resize: none;
+    height: 76px;
+    transition: border-color 0.15s;
+  }
+
+  .notes-input:focus { outline: none; border-color: var(--accent); }
+  .notes-input::placeholder { color: var(--t3); }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-family: var(--fn);
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn-submit:active { transform: scale(0.98); opacity: 0.85; }
+
+  /* ══════════════════════════════════
+     MODAL
+  ══════════════════════════════════ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.72);
+    z-index: 200;
+    display: none;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-sheet {
+    width: 100%;
+    max-width: 480px;
+    background: var(--s2);
+    border-radius: 18px 18px 0 0;
+    border-top: 1px solid var(--border2);
+    padding: 0 20px calc(24px + env(safe-area-inset-bottom, 0));
+    margin-top: auto;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+
+  .modal-drag {
+    width: 36px; height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 10px auto 18px;
+  }
+
+  .modal-inst {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 4px;
+  }
+
+  .modal-amount {
+    font-family: var(--fm);
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .modal-amount.pos { color: var(--green); }
+  .modal-amount.neg { color: var(--red); }
+
+  .modal-date {
+    font-family: var(--fm);
+    font-size: 0.68rem;
+    color: var(--t3);
+    margin-top: 5px;
+  }
+
+  .modal-notes {
+    font-size: 0.8rem;
+    color: var(--t2);
+    font-style: italic;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--s3);
+    border-radius: 6px;
+    border-left: 2px solid var(--border2);
+    line-height: 1.5;
+  }
+
+  .modal-section {
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin: 18px 0 10px;
+  }
+
+  .m-status-opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .m-status-opt.sel-tr  { border-color: var(--yellow); background: var(--yellow-bg); }
+  .m-status-opt.sel-ins { border-color: var(--accent); background: var(--accent-bg); }
+  .m-status-opt.sel-rec { border-color: var(--green);  background: var(--green-bg); }
+
+  .m-status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-tr  { background: var(--yellow); }
+  .dot-ins { background: var(--accent); }
+  .dot-rec { background: var(--green); }
+
+  .m-status-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--t1);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .btn-delete {
+    padding: 12px 18px;
+    background: var(--red-bg);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: var(--fb);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-save {
+    flex: 1;
+    padding: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: var(--fb);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-delete:active, .btn-save:active { opacity: 0.7; }
+
+  /* ══════════════════════════════════
+     TOAST
+  ══════════════════════════════════ */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--s3);
+    border: 1px solid var(--border2);
+    color: var(--t1);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ════════════ HEADER ════════════ -->
+  <header class="header">
+    <div class="header-logo">CAMBIO<span>.</span></div>
+    <div class="header-right">
+      <div class="header-date" id="hdate"></div>
+      <div class="header-time" id="htime"></div>
+    </div>
+  </header>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <main class="main">
+
+    <!-- VIEW: RESUMEN -->
+    <div class="view active" id="view-resumen">
+      <div class="stats-row" id="stats-row"></div>
+      <div class="section-label">Instalaciones</div>
+      <div class="inst-grid" id="inst-grid"></div>
+    </div>
+
+    <!-- VIEW: HISTORIAL -->
+    <div class="view" id="view-historial">
+      <div class="filters" id="filters"></div>
+      <div id="records-list"></div>
+    </div>
+
+    <!-- VIEW: NUEVO -->
+    <div class="view" id="view-nuevo">
+      <div class="form-section">
+        <label class="form-label">Instalación</label>
+        <div class="inst-picker" id="inst-picker"></div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Importe</label>
+        <div class="amount-row">
+          <div class="sign-btns">
+            <button class="sign-btn pos on" id="btn-pos" onclick="setSign(1)">+</button>
+            <button class="sign-btn neg"    id="btn-neg" onclick="setSign(-1)">−</button>
+          </div>
+          <div class="amount-multi">
+            <div id="amount-lines"></div>
+            <button class="btn-add-line" onclick="addAmountLine()">+ Añadir importe</button>
+            <div class="amount-total-row">
+              <span class="amount-total-label">Total</span>
+              <span class="amount-total-val" id="amount-total">0,00 €</span>
+            </div>
+          </div>
+        </div>
+        <div class="sign-hint pos" id="sign-hint">Entrega de central a instalación</div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Estado inicial</label>
+        <div class="status-picker">
+          <button class="status-pick-btn s-tr"  data-st="en_transito"    onclick="setStatus('en_transito')">Tránsito</button>
+          <button class="status-pick-btn"        data-st="en_instalacion" onclick="setStatus('en_instalacion')">Instalación</button>
+          <button class="status-pick-btn"        data-st="recibido"       onclick="setStatus('recibido')">Recibido</button>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">
+          Notas&ensp;<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3)">opcional</span>
+        </label>
+        <textarea class="notes-input" id="f-notes" placeholder="Observaciones..."></textarea>
+      </div>
+      <button class="btn-submit" onclick="submitRecord()">Registrar movimiento</button>
+    </div>
+
+  </main>
+
+  <!-- ════════════ BOTTOM NAV ════════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-resumen" onclick="switchView('resumen')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline stroke-linecap="round" stroke-linejoin="round" points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Resumen
+    </button>
+    <button class="nav-item" id="nav-historial" onclick="switchView('historial')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+      </svg>
+      Historial
+    </button>
+    <button class="nav-item" id="nav-nuevo" onclick="switchView('nuevo')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" stroke-linecap="round"/>
+        <path stroke-linecap="round" d="M12 8v8M8 12h8"/>
+      </svg>
+      Nuevo
+    </button>
+  </nav>
+
+</div>
+
+<!-- ════════════ MODAL ════════════ -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-drag"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const INSTALACIONES = ['Sar', 'Santa Isabel', 'Cafetería', 'Cambio excep.', 'Multixogo'];
+
+const ESTADOS = {
+  en_transito:    { label: 'En tránsito',    bcls: 'b-tr',  mcls: 'sel-tr',  dot: 'dot-tr'  },
+  en_instalacion: { label: 'En instalación', bcls: 'b-ins', mcls: 'sel-ins', dot: 'dot-ins' },
+  recibido:       { label: 'Recibido',       bcls: 'b-rec', mcls: 'sel-rec', dot: 'dot-rec' }
+};
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let records      = JSON.parse(localStorage.getItem('cambio_v1') || '[]');
+let currentSign  = 1;
+let currentInst  = null;
+let currentSt    = 'en_transito';
+let activeFilter = 'all';
+let editId       = null;
+let amountLines  = [''];
+
+function persist() {
+  localStorage.setItem('cambio_v1', JSON.stringify(records));
+}
+
+/* ═══════════════════════════════════════════
+   FORMATTERS
+═══════════════════════════════════════════ */
+function fmtAmt(val) {
+  const sign = val >= 0 ? '+' : '−';
+  return `${sign}${Math.abs(val).toFixed(2).replace('.', ',')} €`;
+}
+
+function fmtAmtAbs(val) {
+  return `${Math.abs(val).toFixed(2).replace('.', ',')} €`;
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function fmtDateShort(iso) {
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/* ═══════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════ */
+const DAYS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function tickClock() {
+  const now = new Date();
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('hdate').textContent =
+    `${DAYS[now.getDay()]} ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('htime').textContent =
+    `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+}
+
+/* ═══════════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════════ */
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+
+  if (name === 'resumen')  renderResumen();
+  if (name === 'historial') renderHistorial();
+  if (name === 'nuevo')    resetForm();
+}
+
+function gotoHistorial(inst) {
+  activeFilter = inst;
+  switchView('historial');
+}
+
+/* ═══════════════════════════════════════════
+   CALCULATIONS
+═══════════════════════════════════════════ */
+function instStats(inst) {
+  const rs        = records.filter(r => r.instalacion === inst);
+  const confirmed = rs.filter(r => r.estado !== 'en_transito');
+  const transit   = rs.filter(r => r.estado === 'en_transito');
+  return {
+    balance:    confirmed.reduce((s, r) => s + r.cantidad, 0),
+    transitNet: transit.reduce((s, r) => s + r.cantidad, 0),
+    last:       rs[0] || null
+  };
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: RESUMEN
+═══════════════════════════════════════════ */
+function renderResumen() {
+  const confirmed = records.filter(r => r.estado !== 'en_transito');
+  const transit   = records.filter(r => r.estado === 'en_transito');
+
+  const totalEnt = confirmed.filter(r => r.cantidad > 0).reduce((s, r) => s + r.cantidad, 0);
+  const totalDev = confirmed.filter(r => r.cantidad < 0).reduce((s, r) => s + Math.abs(r.cantidad), 0);
+  const totalTr  = transit.reduce((s, r) => s + Math.abs(r.cantidad), 0);
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-box">
+      <div class="stat-label">Entregado</div>
+      <div class="stat-value" style="color:var(--green)">${fmtAmtAbs(totalEnt)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Tránsito</div>
+      <div class="stat-value" style="color:var(--yellow)">${fmtAmtAbs(totalTr)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Devuelto</div>
+      <div class="stat-value" style="color:var(--red)">${fmtAmtAbs(totalDev)}</div>
+    </div>
+  `;
+
+  document.getElementById('inst-grid').innerHTML = INSTALACIONES.map(inst => {
+    const { balance, transitNet, last } = instStats(inst);
+    const stCls = balance > 0 ? 'st-pos' : balance < 0 ? 'st-neg' : transitNet !== 0 ? 'st-tr' : 'st-zero';
+    const bCls  = balance > 0 ? 'pos'    : balance < 0 ? 'neg'    : 'zero';
+    const bDisp = balance === 0 ? '0,00 €' : fmtAmtAbs(balance);
+    const tSign = transitNet >= 0 ? '+' : '−';
+    return `<div class="inst-card ${stCls}" onclick="gotoHistorial('${inst.replace(/'/g,"\\'")}')">
+      <div class="inst-name">${escHtml(inst)}</div>
+      <div class="inst-balance ${bCls}">${bDisp}</div>
+      ${transitNet !== 0 ? `<div class="inst-transit">${tSign} ${fmtAmtAbs(transitNet)} tránsito</div>` : ''}
+      <div class="inst-last">${last ? fmtDateShort(last.fecha) : 'Sin movimientos'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: HISTORIAL
+═══════════════════════════════════════════ */
+function renderHistorial() {
+  const chips = [{ key: 'all', label: 'Todos' }, ...INSTALACIONES.map(i => ({ key: i, label: i }))];
+  document.getElementById('filters').innerHTML = chips.map(c =>
+    `<button class="chip ${activeFilter === c.key ? 'active' : ''}"
+      onclick="setFilter(this, '${c.key.replace(/'/g,"\\'")}')">
+      ${escHtml(c.label)}
+    </button>`
+  ).join('');
+
+  const filtered = activeFilter === 'all'
+    ? records
+    : records.filter(r => r.instalacion === activeFilter);
+
+  if (filtered.length === 0) {
+    document.getElementById('records-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">◻</div>
+        <div class="empty-text">Sin registros</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('records-list').innerHTML = filtered.map(r => {
+    const e    = ESTADOS[r.estado];
+    const aCls = r.cantidad > 0 ? 'pos' : 'neg';
+    return `<div class="record-item" onclick="openModal('${r.id}')">
+      <div class="record-left">
+        <div class="record-amount ${aCls}">${fmtAmt(r.cantidad)}</div>
+        <div class="badge ${e.bcls}"><div class="badge-dot"></div>${e.label}</div>
+      </div>
+      <div class="record-right">
+        <div class="record-inst">${escHtml(r.instalacion)}</div>
+        <div class="record-date">${fmtDate(r.fecha)}</div>
+        ${r.notas ? `<div class="record-notes">${escHtml(r.notas)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(btn, key) {
+  activeFilter = key;
+  renderHistorial();
+}
+
+/* ═══════════════════════════════════════════
+   FORM
+═══════════════════════════════════════════ */
+function renderInstPicker() {
+  document.getElementById('inst-picker').innerHTML = INSTALACIONES.map(inst =>
+    `<button class="inst-pick-btn ${currentInst === inst ? 'selected' : ''}"
+      onclick="selectInst(this, '${inst.replace(/'/g,"\\'")}')">
+      ${escHtml(inst)}
+    </button>`
+  ).join('');
+}
+
+function selectInst(btn, inst) {
+  currentInst = inst;
+  document.querySelectorAll('.inst-pick-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+/* ═══════════════════════════════════════════
+   MULTI-AMOUNT
+═══════════════════════════════════════════ */
+function renderAmountLines() {
+  document.getElementById('amount-lines').innerHTML = amountLines.map((val, i) => `
+    <div class="amount-line">
+      <input type="number" class="amount-input-line" value="${escAttr(val)}"
+             placeholder="0.00" step="0.01" min="0" inputmode="decimal"
+             oninput="amountLines[${i}]=this.value;updateAmountTotal()">
+      ${amountLines.length > 1
+        ? `<button class="btn-rm-line" onclick="removeAmountLine(${i})">×</button>`
+        : ''}
+    </div>
+  `).join('');
+  updateAmountTotal();
+}
+
+function calcAmountTotal() {
+  return amountLines.reduce((s, v) => {
+    const n = parseFloat(v);
+    return s + (isNaN(n) || n < 0 ? 0 : n);
+  }, 0);
+}
+
+function updateAmountTotal() {
+  const total = calcAmountTotal();
+  document.getElementById('amount-total').textContent =
+    total === 0 ? '0,00 €' : `${total.toFixed(2).replace('.', ',')} €`;
+}
+
+function addAmountLine() {
+  amountLines.push('');
+  renderAmountLines();
+  const inputs = document.querySelectorAll('.amount-input-line');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeAmountLine(i) {
+  amountLines.splice(i, 1);
+  renderAmountLines();
+}
+
+function escAttr(str) {
+  return String(str).replace(/"/g, '&quot;');
+}
+
+function setSign(s) {
+  currentSign = s;
+  document.getElementById('btn-pos').classList.toggle('on', s === 1);
+  document.getElementById('btn-neg').classList.toggle('on', s === -1);
+  const hint = document.getElementById('sign-hint');
+  if (s === 1) {
+    hint.className = 'sign-hint pos';
+    hint.textContent = 'Entrega de central a instalación';
+  } else {
+    hint.className = 'sign-hint neg';
+    hint.textContent = 'Devolución de instalación a central';
+  }
+}
+
+function setStatus(st) {
+  currentSt = st;
+  const MAP = { en_transito: 's-tr', en_instalacion: 's-ins', recibido: 's-rec' };
+  document.querySelectorAll('.status-pick-btn').forEach(btn => {
+    const s = btn.dataset.st;
+    btn.className = `status-pick-btn${currentSt === s ? ' ' + MAP[s] : ''}`;
+  });
+}
+
+function resetForm() {
+  currentInst = null;
+  currentSign = 1;
+  currentSt   = 'en_transito';
+  amountLines = [''];
+  document.getElementById('f-notes').value = '';
+  renderInstPicker();
+  renderAmountLines();
+  setSign(1);
+  setStatus('en_transito');
+}
+
+function submitRecord() {
+  if (!currentInst) { toast('Selecciona una instalación'); return; }
+  const raw = calcAmountTotal();
+  if (!raw || raw <= 0) { toast('Introduce al menos un importe válido'); return; }
+
+  records.unshift({
+    id:         `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    instalacion: currentInst,
+    cantidad:    currentSign * raw,
+    estado:      currentSt,
+    fecha:       new Date().toISOString(),
+    notas:       document.getElementById('f-notes').value.trim()
+  });
+
+  persist();
+  activeFilter = currentInst;
+  switchView('historial');
+}
+
+/* ═══════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════ */
+function openModal(id) {
+  editId = id;
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+
+  const aCls = r.cantidad > 0 ? 'pos' : 'neg';
+
+  document.getElementById('modal-content').innerHTML = `
+    <div>
+      <div class="modal-inst">${escHtml(r.instalacion)}</div>
+      <div class="modal-amount ${aCls}">${fmtAmt(r.cantidad)}</div>
+      <div class="modal-date">${fmtDate(r.fecha)}</div>
+      ${r.notas ? `<div class="modal-notes">${escHtml(r.notas)}</div>` : ''}
+    </div>
+
+    <div class="modal-section">Cambiar estado</div>
+    ${Object.entries(ESTADOS).map(([key, val]) => `
+      <div class="m-status-opt ${r.estado === key ? val.mcls : ''}"
+           data-mst="${key}" onclick="selectModalStatus(this, '${key}')">
+        <div class="m-status-dot ${val.dot}"></div>
+        <div class="m-status-label">${val.label}</div>
+      </div>
+    `).join('')}
+
+    <div class="modal-actions">
+      <button class="btn-delete" onclick="deleteRecord()">Eliminar</button>
+      <button class="btn-save"   onclick="saveModal()">Guardar</button>
+    </div>
+  `;
+
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function selectModalStatus(el, key) {
+  document.querySelectorAll('.m-status-opt').forEach(opt => {
+    const k = opt.dataset.mst;
+    opt.className = `m-status-opt${k === key ? ' ' + ESTADOS[k].mcls : ''}`;
+  });
+}
+
+function handleBackdropClick(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+  editId = null;
+}
+
+function saveModal() {
+  const sel = document.querySelector('.m-status-opt[class*="sel-"]');
+  if (!sel || !editId) return;
+  const r = records.find(x => x.id === editId);
+  if (r) {
+    r.estado = sel.dataset.mst;
+    persist();
+    renderHistorial();
+    renderResumen();
+  }
+  closeModal();
+}
+
+function deleteRecord() {
+  if (!editId) return;
+  if (!confirm('¿Eliminar este registro?')) return;
+  records = records.filter(x => x.id !== editId);
+  persist();
+  renderHistorial();
+  renderResumen();
+  closeModal();
+}
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+tickClock();
+setInterval(tickClock, 1000);
+renderResumen();
+renderInstPicker();
+renderAmountLines();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
