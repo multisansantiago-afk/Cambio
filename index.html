@@ -812,6 +812,31 @@
   .btn-delete:active, .btn-save:active { opacity: 0.7; }
 
   /* ══════════════════════════════════
+     STATUS HISTORY
+  ══════════════════════════════════ */
+  .status-history { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+
+  .status-history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--s3);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .status-history-info { display: flex; flex-direction: column; gap: 2px; }
+
+  .status-history-label { font-size: 0.78rem; font-weight: 500; color: var(--t1); }
+
+  .status-history-date {
+    font-family: var(--fm);
+    font-size: 0.58rem;
+    color: var(--t3);
+  }
+
+  /* ══════════════════════════════════
      TOAST
   ══════════════════════════════════ */
   .toast {
@@ -954,7 +979,7 @@
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const INSTALACIONES = ['Sar', 'Santa Isabel', 'Cafetería', 'Cambio excep.', 'Multixogo'];
+const INSTALACIONES = ['Sar', 'Santa Isabel', 'Cafetería', 'Cambio excep.', 'Multixogo', 'Piscina'];
 
 const ESTADOS = {
   en_transito:    { label: 'En tránsito',    bcls: 'b-tr',  mcls: 'sel-tr',  dot: 'dot-tr'  },
@@ -1039,11 +1064,11 @@ function gotoHistorial(inst) {
    CALCULATIONS
 ═══════════════════════════════════════════ */
 function instStats(inst) {
-  const rs        = records.filter(r => r.instalacion === inst);
-  const confirmed = rs.filter(r => r.estado !== 'en_transito');
-  const transit   = rs.filter(r => r.estado === 'en_transito');
+  const rs      = records.filter(r => r.instalacion === inst);
+  const active  = rs.filter(r => r.estado === 'en_instalacion');
+  const transit = rs.filter(r => r.estado === 'en_transito');
   return {
-    balance:    confirmed.reduce((s, r) => s + r.cantidad, 0),
+    balance:    active.reduce((s, r) => s + r.cantidad, 0),
     transitNet: transit.reduce((s, r) => s + r.cantidad, 0),
     last:       rs[0] || null
   };
@@ -1056,8 +1081,8 @@ function renderResumen() {
   const confirmed = records.filter(r => r.estado !== 'en_transito');
   const transit   = records.filter(r => r.estado === 'en_transito');
 
-  const totalEnt = confirmed.filter(r => r.cantidad > 0).reduce((s, r) => s + r.cantidad, 0);
-  const totalDev = confirmed.filter(r => r.cantidad < 0).reduce((s, r) => s + Math.abs(r.cantidad), 0);
+  const totalEnt = confirmed.filter(r => r.estado === 'en_instalacion' && r.cantidad > 0).reduce((s, r) => s + r.cantidad, 0);
+  const totalDev = records.filter(r => r.estado === 'recibido').reduce((s, r) => s + Math.abs(r.cantidad), 0);
   const totalTr  = transit.reduce((s, r) => s + Math.abs(r.cantidad), 0);
 
   document.getElementById('stats-row').innerHTML = `
@@ -1241,13 +1266,15 @@ function submitRecord() {
   const raw = calcAmountTotal();
   if (!raw || raw <= 0) { toast('Introduce al menos un importe válido'); return; }
 
+  const now = new Date().toISOString();
   records.unshift({
-    id:         `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    instalacion: currentInst,
-    cantidad:    currentSign * raw,
-    estado:      currentSt,
-    fecha:       new Date().toISOString(),
-    notas:       document.getElementById('f-notes').value.trim()
+    id:            `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    instalacion:   currentInst,
+    cantidad:      currentSign * raw,
+    estado:        currentSt,
+    fecha:         now,
+    notas:         document.getElementById('f-notes').value.trim(),
+    statusHistory: [{ estado: currentSt, fecha: now }]
   });
 
   persist();
@@ -1265,6 +1292,21 @@ function openModal(id) {
 
   const aCls = r.cantidad > 0 ? 'pos' : 'neg';
 
+  const history = r.statusHistory || [{ estado: r.estado, fecha: r.fecha }];
+  const historyHtml = history.length > 1
+    ? `<div class="modal-section">Historial de estados</div>
+       <div class="status-history">
+         ${history.map(h => `
+           <div class="status-history-item">
+             <div class="m-status-dot ${ESTADOS[h.estado].dot}"></div>
+             <div class="status-history-info">
+               <span class="status-history-label">${ESTADOS[h.estado].label}</span>
+               <span class="status-history-date">${fmtDate(h.fecha)}</span>
+             </div>
+           </div>`).join('')}
+       </div>`
+    : '';
+
   document.getElementById('modal-content').innerHTML = `
     <div>
       <div class="modal-inst">${escHtml(r.instalacion)}</div>
@@ -1272,6 +1314,8 @@ function openModal(id) {
       <div class="modal-date">${fmtDate(r.fecha)}</div>
       ${r.notas ? `<div class="modal-notes">${escHtml(r.notas)}</div>` : ''}
     </div>
+
+    ${historyHtml}
 
     <div class="modal-section">Cambiar estado</div>
     ${Object.entries(ESTADOS).map(([key, val]) => `
@@ -1312,7 +1356,23 @@ function saveModal() {
   if (!sel || !editId) return;
   const r = records.find(x => x.id === editId);
   if (r) {
-    r.estado = sel.dataset.mst;
+    const newEstado  = sel.dataset.mst;
+    const prevEstado = r.estado;
+
+    if (newEstado !== prevEstado) {
+      if (!r.statusHistory) r.statusHistory = [{ estado: prevEstado, fecha: r.fecha }];
+      r.statusHistory.push({ estado: newEstado, fecha: new Date().toISOString() });
+
+      // Recibido = devuelto a base → negativo; si sale de Recibido → restaurar positivo
+      if (newEstado === 'recibido' && r.cantidad > 0) {
+        r.cantidad = -r.cantidad;
+      } else if (prevEstado === 'recibido' && newEstado !== 'recibido' && r.cantidad < 0) {
+        r.cantidad = -r.cantidad;
+      }
+
+      r.estado = newEstado;
+    }
+
     persist();
     renderHistorial();
     renderResumen();
