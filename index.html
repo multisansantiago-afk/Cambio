@@ -96,6 +96,80 @@
 
   .header-logo span { color: var(--accent); }
 
+  .header-center { display: flex; align-items: center; gap: 6px; }
+
+  .btn-backup {
+    width: 34px; height: 34px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--t3);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-backup:active { color: var(--accent); border-color: var(--accent); }
+  .btn-backup svg { width: 16px; height: 16px; stroke-width: 1.8; }
+
+  /* ══════════════════════════════════
+     RESTORE BANNER
+  ══════════════════════════════════ */
+  .restore-banner {
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    background: var(--accent-bg);
+    border-bottom: 1px solid var(--accent);
+  }
+  .restore-banner.visible { display: flex; }
+  .restore-banner-text { flex: 1; font-size: 0.75rem; color: var(--accent); font-weight: 500; }
+  .restore-banner-btn {
+    padding: 6px 14px;
+    background: var(--accent);
+    border: none; border-radius: 6px;
+    color: #000; font-family: var(--fb); font-size: 0.72rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .restore-banner-close {
+    width: 26px; height: 26px;
+    background: none; border: none;
+    color: var(--t3); font-size: 1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ══════════════════════════════════
+     BACKUP MODAL HELPERS
+  ══════════════════════════════════ */
+  .bk-label {
+    font-size: 0.56rem; font-weight: 600; color: var(--t3);
+    text-transform: uppercase; letter-spacing: 1.1px;
+    margin-bottom: 9px;
+  }
+  .bk-btn {
+    width: 100%; padding: 12px;
+    background: var(--s3); border: 1px solid var(--border2); border-radius: 9px;
+    color: var(--t1); font-family: var(--fb); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+    transition: border-color 0.15s;
+  }
+  .bk-btn:active { border-color: var(--accent); }
+  .bk-btn-main {
+    width: 100%; padding: 13px;
+    background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 9px;
+    color: var(--accent); font-family: var(--fb); font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+  }
+  .bk-btn-main:active { opacity: 0.8; }
+  .bk-active {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 13px;
+    background: var(--green-bg); border: 1px solid var(--green); border-radius: 9px;
+  }
+
   .header-right { text-align: right; }
 
   .header-date {
@@ -871,11 +945,25 @@
   <!-- ════════════ HEADER ════════════ -->
   <header class="header">
     <div class="header-logo">CAMBIO<span>.</span></div>
+    <div class="header-center">
+      <button class="btn-backup" onclick="openBackupModal()" title="Copia de seguridad">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+      </button>
+    </div>
     <div class="header-right">
       <div class="header-date" id="hdate"></div>
       <div class="header-time" id="htime"></div>
     </div>
   </header>
+
+  <!-- ════════════ RESTORE BANNER ════════════ -->
+  <div class="restore-banner" id="restore-banner">
+    <span class="restore-banner-text">Respaldo disponible — datos borrados</span>
+    <button class="restore-banner-btn" onclick="restoreFromBackup()">Restaurar</button>
+    <button class="restore-banner-close" onclick="hideBanner()">✕</button>
+  </div>
 
   <!-- ════════════ MAIN ════════════ -->
   <main class="main">
@@ -972,6 +1060,14 @@
   </div>
 </div>
 
+<!-- BACKUP MODAL -->
+<div class="modal-backdrop" id="backup-backdrop" onclick="handleBackupBackdropClick(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="padding-bottom:calc(28px + env(safe-area-inset-bottom,0))">
+    <div class="modal-drag"></div>
+    <div id="backup-modal-body"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1000,6 +1096,7 @@ let amountLines  = [''];
 
 function persist() {
   localStorage.setItem('cambio_v1', JSON.stringify(records));
+  writeBackupFile(); // async fire-and-forget
 }
 
 /* ═══════════════════════════════════════════
@@ -1391,6 +1488,224 @@ function deleteRecord() {
 }
 
 /* ═══════════════════════════════════════════
+   FILE SYSTEM BACKUP (File System Access API)
+═══════════════════════════════════════════ */
+const FS_SUPPORTED = 'showSaveFilePicker' in window;
+let _fsHandle = null; // handle cacheado en memoria para esta sesión
+
+// ── IndexedDB: guardar/leer el FileSystemFileHandle ──
+function _idb(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('cambio_fs', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('kv');
+    req.onsuccess = e => {
+      try {
+        const tx = e.target.result.transaction('kv', mode);
+        resolve(fn(tx.objectStore('kv'), tx));
+      } catch(err) { reject(err); }
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+const idbGet = key => _idb('readonly',  (s)    => new Promise((res, rej) => { const r = s.get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+const idbSet = (key, val) => _idb('readwrite', (s, tx) => new Promise((res, rej) => { s.put(val, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }));
+const idbDel = key => _idb('readwrite', (s, tx) => new Promise((res, rej) => { s.delete(key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }));
+
+// ── Configurar archivo de respaldo (una sola vez) ──
+async function setupAutoBackup() {
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: 'cambio_backup.json',
+      types: [{ description: 'Respaldo JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    _fsHandle = handle;
+    await idbSet('fs_handle', handle);
+    await _writeToHandle(handle);
+    renderBackupModal();
+    toast('Respaldo automático activado');
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('Error al configurar respaldo');
+  }
+}
+
+async function disableAutoBackup() {
+  if (!confirm('¿Desactivar el respaldo automático?')) return;
+  _fsHandle = null;
+  await idbDel('fs_handle');
+  renderBackupModal();
+  toast('Respaldo automático desactivado');
+}
+
+// ── Escritura al archivo (sin diálogos, fallo silencioso) ──
+async function _writeToHandle(handle) {
+  try {
+    const perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') return;
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(records, null, 2));
+    await writable.close();
+  } catch { /* silencioso */ }
+}
+
+async function writeBackupFile() {
+  const handle = _fsHandle || await idbGet('fs_handle').catch(() => null);
+  if (!handle) return;
+  _fsHandle = handle;
+  await _writeToHandle(handle);
+}
+
+// ── Restaurar (requiere gesto del usuario para el permiso) ──
+async function restoreFromBackup() {
+  const handle = _fsHandle || await idbGet('fs_handle').catch(() => null);
+  if (!handle) return;
+  try {
+    let perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') { toast('Permiso denegado'); return; }
+    _fsHandle = handle;
+    const data = JSON.parse(await (await handle.getFile()).text());
+    if (!Array.isArray(data)) throw new Error('invalid');
+    records = data;
+    persist();
+    renderResumen();
+    renderHistorial();
+    hideBanner();
+    toast(`${records.length} registros restaurados`);
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('Error al leer el respaldo');
+  }
+}
+
+// ── Comprobación al inicio ──
+async function checkBackupOnStartup() {
+  if (!FS_SUPPORTED) return;
+  const handle = await idbGet('fs_handle').catch(() => null);
+  if (!handle) return;
+  _fsHandle = handle;
+
+  const perm = await handle.queryPermission({ mode: 'readwrite' }).catch(() => 'prompt');
+
+  if (perm === 'granted') {
+    // Permiso ya activo (misma sesión o PWA instalada) — restaurar si localStorage vacío
+    try {
+      const data = JSON.parse(await (await handle.getFile()).text());
+      if (Array.isArray(data) && data.length > 0 && records.length === 0) {
+        records = data;
+        persist();
+        renderResumen();
+        toast(`${data.length} registros restaurados desde respaldo`);
+      }
+    } catch { /* silencioso */ }
+  } else if (records.length === 0) {
+    // Necesita gesto del usuario — mostrar banner solo si localStorage está vacío
+    showBanner();
+  }
+}
+
+function showBanner() { document.getElementById('restore-banner').classList.add('visible'); }
+function hideBanner()  { document.getElementById('restore-banner').classList.remove('visible'); }
+
+// ── Modal de backup (renderizado dinámico) ──
+function openBackupModal() {
+  renderBackupModal();
+  document.getElementById('backup-backdrop').classList.add('open');
+}
+
+function closeBackupModal() {
+  document.getElementById('backup-backdrop').classList.remove('open');
+}
+
+function handleBackupBackdropClick(e) {
+  if (e.target === e.currentTarget) closeBackupModal();
+}
+
+async function renderBackupModal() {
+  const count  = records.length;
+  const handle = _fsHandle || await idbGet('fs_handle').catch(() => null);
+
+  let autoSection;
+  if (!FS_SUPPORTED) {
+    autoSection = `<div style="font-size:0.75rem;color:var(--t3);padding:8px 0">No disponible en este navegador</div>`;
+  } else if (handle) {
+    let fname = '';
+    try { fname = handle.name; } catch {}
+    autoSection = `
+      <div class="bk-active">
+        <div style="display:flex;align-items:center;gap:9px;flex:1;min-width:0">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--green)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div style="min-width:0">
+            <div style="font-size:0.82rem;font-weight:600;color:var(--green)">Activo</div>
+            ${fname ? `<div style="font-size:0.65rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(fname)}</div>` : ''}
+          </div>
+        </div>
+        <button onclick="disableAutoBackup()" style="padding:6px 12px;background:var(--red-bg);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:0.72rem;font-weight:600;cursor:pointer;flex-shrink:0">Desactivar</button>
+      </div>`;
+  } else {
+    autoSection = `
+      <button onclick="setupAutoBackup()" class="bk-btn-main">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Elegir archivo de respaldo
+      </button>
+      <div style="font-size:0.65rem;color:var(--t3);text-align:center;margin-top:5px">Se guardará en cada cambio automáticamente</div>`;
+  }
+
+  document.getElementById('backup-modal-body').innerHTML = `
+    <div style="font-family:var(--fn);font-size:1rem;color:var(--t1);margin-bottom:4px">Copia de seguridad</div>
+    <div style="font-size:0.72rem;color:var(--t3);margin-bottom:20px">${count === 0 ? 'Sin registros' : `${count} registro${count !== 1 ? 's' : ''}`}</div>
+
+    <div class="bk-label">Respaldo automático</div>
+    ${autoSection}
+
+    <div class="bk-label" style="margin-top:20px">Manual</div>
+    <button onclick="exportData()" class="bk-btn">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+      Descargar JSON
+    </button>
+    <button onclick="document.getElementById('import-file').click()" class="bk-btn" style="margin-top:7px">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8v-2a2 2 0 012-2h12a2 2 0 012 2v2M7 14l5-5 5 5M12 9v12"/></svg>
+      Importar JSON
+    </button>
+    <div style="font-size:0.65rem;color:var(--red);opacity:0.75;text-align:center;margin-top:5px">Importar reemplaza todos los datos actuales</div>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(event)">
+  `;
+}
+
+// ── Export / Import manual ──
+function exportData() {
+  const json = JSON.stringify(records, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const now  = new Date();
+  const pad  = n => String(n).padStart(2, '0');
+  const name = `cambio_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.json`;
+  const a    = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  toast('Exportado: ' + name);
+  closeBackupModal();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('formato inválido');
+      records = data;
+      persist();
+      renderResumen();
+      renderHistorial();
+      toast(`${records.length} registros importados`);
+      closeBackupModal();
+    } catch { toast('Error: archivo inválido'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════════════
    UTILS
 ═══════════════════════════════════════════ */
 function escHtml(str) {
@@ -1418,6 +1733,14 @@ setInterval(tickClock, 1000);
 renderResumen();
 renderInstPicker();
 renderAmountLines();
+
+// Solicitar almacenamiento persistente (protege contra vaciado automático del navegador)
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist();
+}
+
+// Comprobar respaldo automático al arrancar
+checkBackupOnStartup();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
